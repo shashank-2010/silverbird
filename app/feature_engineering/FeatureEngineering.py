@@ -182,7 +182,7 @@ class FeatureEngineering:
         df['intraday_reversal'] = (df['close'] < df['open']).astype(int)
 
         # === 🧹 Clean Up === #
-        df.drop(columns=['prev_close', 'open', 'high', 'low','atr_14','ema_13','ema_21','bb_percent_b'], inplace=True)
+        df.drop(columns=['prev_close','atr_14','ema_13','ema_21','bb_percent_b'], inplace=True)
         df.dropna(inplace=True)
 
         self.df = df

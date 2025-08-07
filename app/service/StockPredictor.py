@@ -82,8 +82,8 @@ class StockPricePredictor:
         # dummy[0][close_index] = prediction
         # prediction_unscaled = self.scaler.inverse_transform(dummy)[0][close_index]
 
-        dummy[0][1] = prediction  
-        prediction_unscaled = self.scaler.inverse_transform(dummy)[0][1]
+        dummy[0][3] = prediction  
+        prediction_unscaled = self.scaler.inverse_transform(dummy)[0][3]
 
         current_price = df[df['symbol'] == symbol].iloc[-1]['close']
         direction = "up" if prediction_unscaled > current_price else "down"

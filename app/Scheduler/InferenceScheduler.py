@@ -119,7 +119,7 @@ def run_prediction_job():
 
 if __name__ == "__main__":
     # Schedule to run daily at 7:00 AM
-    schedule.every().day.at("12:01").do(run_prediction_job)
+    schedule.every().day.at("12:43").do(run_prediction_job)
 
     print("[INFO] Scheduler is active. Waiting for the next scheduled prediction run.")
     while True:
