@@ -30,6 +30,7 @@ from app.ai_models_class.ALSTMModel import AttentionLSTM
 from app.ai_models_class.LSTMModel import LSTMModel
 from app.ai_models_class.RNNModel import RNNModel
 from app.ai_models_class.TCNNModel import CNNLSTMModel
+from sklearn.metrics import mean_squared_error
 import pandas as pd
 
 # Constants
@@ -67,6 +68,53 @@ MODELS = {
 #      "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN",
 # ]
 SYMBOLS = ["ADANIPORTS"]
+
+def directional_accuracy(y_true_seq, y_pred, forecast_days):
+    """
+    y_true_seq: original array of target prices (sequence aligned with model inputs)
+    y_pred: predicted prices (same length as y_true after seq_len + forecast_days)
+    forecast_days: the forecast horizon used
+    """
+
+    y_true_seq = np.array(y_true_seq)
+    y_pred = np.array(y_pred)
+
+    # Get the actual "current" values by shifting backward
+    y_true_now = y_true_seq[:-forecast_days]
+    y_true_future = y_true_seq[forecast_days:]
+
+    # Make sure lengths match predicted values
+    y_true_now = y_true_now[-len(y_pred):]
+    y_true_future = y_true_future[-len(y_pred):]
+
+    # Direction of actual change
+    actual_dir = np.sign(y_true_future - y_true_now)
+    predicted_dir = np.sign(y_pred - y_true_now)
+
+    correct = actual_dir == predicted_dir
+    return np.mean(correct)
+
+
+def evaluate_model(model, data_loader, device, y_true_full, forecast_days):
+    model.eval()
+    predictions = []
+
+    with torch.no_grad():
+        for xb, _ in data_loader:
+            xb = xb.to(device)
+            pred = model(xb).squeeze(-1)
+            predictions.extend(pred.cpu().numpy())
+
+    # Slice y_true to match predictions
+    y_true = y_true_full[:len(predictions)]
+
+    mse = mean_squared_error(y_true, predictions)
+    dir_acc = directional_accuracy(y_true_full, predictions, forecast_days)
+
+    return {
+        "MSE": mse,
+        "Directional_Accuracy": dir_acc
+    }
 
 
 def create_sequences(data, seq_len, forecast_horizon):
@@ -119,6 +167,8 @@ def train_model_entry(args):
     model_path = os.path.join(MODEL_SAVE_DIR, f"{model_name}_{symbol}_day-{forecast_days}.pth")
     torch.save(model.state_dict(), model_path)
     print(f"[INFO] Saved model: {model_path}")
+    # metrics = evaluate_model(model, loader, device)
+    # print(f"[EVALUATION] {symbol}-{model_name}-{forecast_days}: {metrics}")
 
 
 def parallel_train_all_models(csv_path, symbol):
@@ -147,7 +197,7 @@ def run_training_job():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("12:27").do(run_training_job)
+    schedule.every().day.at("00:10").do(run_training_job)
 
     print("[SCHEDULER] Started. Waiting for next run...")
     while True:
