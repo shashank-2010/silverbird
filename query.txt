@@ -1,0 +1,164 @@
+Query: What is the current price of Sun Pharmaceutical Industries Ltd.?
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_current_price"}
+
+Query: current price of Sun Pharmaceutical Industries Ltd.
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_current_price"}
+
+Query: price of Sun Pharmaceutical Industries Ltd.
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_current_price"}
+
+Query: What is the price of Sun Pharmaceutical Industries Ltd.?
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_current_price"}
+
+Query: What is the historical price of Sun Pharmaceutical Industries Ltd. from 2024-06-01 to 2024-06-07?
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_historical_price", "start_date": "2024-06-01", "end_date": "2024-06-07"}
+
+Query: historical price of Sun Pharmaceutical Industries Ltd. from 2024-06-01 to 2024-06-07?
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_historical_price", "start_date": "2024-06-01", "end_date": "2024-06-07"}
+
+Query: Show historical data of Sun Pharmaceutical Industries Ltd.
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_historical_price", "duration": "1month"}
+
+Query: Last week's stock price of Infosys
+Output: {"company": "Infosys", "intent": "get_historical_price", "duration": "1week"}
+
+Query: Cipla Ltd. Last week price
+Output: {"company": "Cipla Ltd.", "intent": "get_historical_price", "duration": "1week"}
+
+Query: Cipla Ltd. price last week
+Output: {"company": "Cipla Ltd.", "intent": "get_historical_price", "duration": "1week"}
+
+Query: Show historical data of Google  
+Output: {"company": "Google", "intent": "get_historical_price", "duration": "1month"}
+
+Query: Show historical price of Reliance  
+Output: {"company": "Reliance", "intent": "get_historical_price", "duration": "1month"}
+
+Query: historical stock data for TCS  
+Output: {"company": "TCS", "intent": "get_historical_price", "duration": "1month"}
+
+Query: price history of Infosys  
+Output: {"company": "Infosys", "intent": "get_historical_price", "duration": "1month"}
+
+Query: Show historical data of Asian Paints Ltd.  
+Output: {"company": "Asian Paints Ltd.", "intent": "get_historical_price", "duration": "1month"}
+
+Query: What is the stock price prediction for Sun Pharmaceutical Industries Ltd. for the next 3 days?
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_future_prediction", "days": [3]}
+
+Query: Predict the price of Sun Pharmaceutical Industries Ltd. for 1 day.
+Output: {"company": "Sun Pharmaceutical Industries Ltd.", "intent": "get_future_prediction", "days": [1]}
+
+Query: Show me a 5-day forecast for Infosys.
+Output: {"company": "Infosys", "intent": "get_future_prediction", "days": [5]}
+
+Query: Future stock predictions for Google for 1 and 3 days.
+Output: {"company": "Google", "intent": "get_future_prediction", "days": [1, 3]}
+
+Query: What is the 3 day price forecast for Reliance?
+Output: {"company": "Reliance", "intent": "get_future_prediction", "days": [3]}
+
+Query: Give me the next 7 days stock prediction for TCS.
+Output: {"company": "TCS", "intent": "get_future_prediction", "days": [7]}
+
+Query: Tell me the forecast for Asian Paints Ltd. for the next 1 day.
+Output: {"company": "Asian Paints Ltd.", "intent": "get_future_prediction", "days": [1]}
+
+Query: How will Cipla Ltd. stock perform in the next 5 days?
+Output: {"company": "Cipla Ltd.", "intent": "get_future_prediction", "days": [5]}
+
+Query: 1 day and 3 day price prediction of HDFC Bank.
+Output: {"company": "HDFC Bank", "intent": "get_future_prediction", "days": [1, 3]}
+
+Query: What are the stock price forecasts for ITC over the next 1 and 5 days?
+Output: {"company": "ITC", "intent": "get_future_prediction", "days": [1, 5]}
+
+Query: Which stocks will go up in the next 3 days?
+Output:
+{
+  "intent": "get_market_trend",
+  "direction": "up",
+  "days": [3]
+}
+
+Query: What companies are expected to go down tomorrow?
+Output:
+{
+  "intent": "get_market_trend",
+  "direction": "down",
+  "days": [1]
+}
+
+Query: Show me all stocks likely to rise in a week
+Output:
+{
+  "intent": "get_market_trend",
+  "direction": "up",
+  "days": [7]
+}
+
+Query: yes
+Output:
+{
+  "intent": "confirmation",
+  "confirmation": "yes"
+}
+
+Query: no
+Output:
+{
+  "intent": "confirmation",
+  "confirmation": "no"
+}
+
+Query: hi
+Output: {"intent": "greeting"}
+
+Query: hello
+Output: {"intent": "greeting"}
+
+Query: hey there
+Output: {"intent": "greeting"}
+
+Query: good morning
+Output: {"intent": "greeting"}
+
+Query: greetings
+Output: {"intent": "greeting"}
+
+Query: what's the weather today?
+Output: {"intent": "unknown"}
+
+Query: tell me a joke
+Output: {"intent": "unknown"}
+
+Query: what's your name?
+Output: {"intent": "unknown"}
+
+Query: who made you?
+Output: {"intent": "unknown"}
+
+Query: what's your purpose?
+Output: {"intent": "unknown"}
+
+Query: recommend a restaurant nearby
+Output: {"intent": "unknown"}
+
+Query: I want to book a flight
+Output: {"intent": "unknown"}
+
+Query: tell me a recipe for pasta
+Output: {"intent": "unknown"}
+
+Query: who won the cricket match?
+Output: {"intent": "unknown"}
+
+Query: tell me something
+Output: {"intent": "unknown"}
+
+Query: I have a question
+Output: {"intent": "unknown"}
+
+Query: what do you do?
+Output: {"intent": "unknown"}
+
