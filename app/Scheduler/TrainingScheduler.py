@@ -59,15 +59,15 @@ MODELS = {
 #     "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN", "TRENT", "ULTRACEMCO", "WIPRO"
 # ]
 
-# SYMBOLS = ["ADANIPORTS", "APOLLOHOSP","AXISBANK",
-#     "BAJFINANCE", "BEL", "BHARTIARTL","COALINDIA",
-#     "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO",
-#      "HINDUNILVR", "ICICIBANK", "ITC",
-#     "KOTAKBANK","MARUTI","NESTLEIND", "ONGC",
-#     "POWERGRID", "RELIANCE", "TCS",
-#      "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN",
-# ]
-SYMBOLS = ["ADANIPORTS"]
+SYMBOLS = ["ADANIPORTS", "APOLLOHOSP","AXISBANK",
+    "BAJFINANCE", "BEL", "BHARTIARTL","COALINDIA",
+    "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO",
+     "HINDUNILVR", "ICICIBANK", "ITC",
+    "KOTAKBANK","MARUTI","NESTLEIND", "ONGC",
+    "POWERGRID", "RELIANCE", "TCS",
+     "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN",
+]
+# SYMBOLS = ["ADANIPORTS"]
 
 def directional_accuracy(y_true_seq, y_pred, forecast_days):
     """
@@ -197,7 +197,7 @@ def run_training_job():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("00:10").do(run_training_job)
+    schedule.every().day.at("05:12").do(run_training_job)
 
     print("[SCHEDULER] Started. Waiting for next run...")
     while True:
