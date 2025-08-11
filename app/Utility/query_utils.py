@@ -80,7 +80,7 @@ class QueryUtility:
         return self.output_query.summarize_with_llm_for_history(raw_data, user_query)
 
     def _handle_future_prediction(self, symbol, extracted, user_query):
-        days = extracted.get("days")
+        days = extracted.get("days", 1)
         if not days:
             days = [1, 3]
         elif isinstance(days, int):

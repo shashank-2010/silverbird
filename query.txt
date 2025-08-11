@@ -162,3 +162,11 @@ Output: {"intent": "unknown"}
 Query: what do you do?
 Output: {"intent": "unknown"}
 
+Query: what are the symbols present with you?
+Output: {"intent":"symbols from database"}
+
+Query: Symbols for which you have information?
+Output: {"intent":"symbols from database"}
+
+Query: Symbols
+Output: {"intent":"symbols from database"}

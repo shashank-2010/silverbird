@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import random
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 grandparent_dir = os.path.abspath(os.path.join(parent_dir, '..'))
 if parent_dir not in sys.path:
@@ -48,6 +49,7 @@ class OutputQueryProcessing:
         2. Use bullet points to present key values like Open, High, Low, and Close prices.
         3. If the stock data does not match the company in the user query, note the mismatch clearly.
         4. Be conversational and avoid overly technical language.
+        5. Also at last give suggestion in a polite and better way based on query like Do you want me to tell you about other symbols?
         JSON Data:
         {json.dumps(stock_data, indent=2)}
         """
@@ -81,8 +83,10 @@ class OutputQueryProcessing:
 
         You are given the following stock data in JSON format. Your task is to:
         - Write a clear, concise, and short summary of the stock data.
-        - Format the summary as readable bullet points.
+        - Format the summary as readable bullet points. But dont mention the meta level comments like "in readable bullet form".
         - If json has direction , then try explaining the direction which is based on last day's close price. 
+        - Also at last give suggestion in a polite and better way based on query like - Do you want me to let you know about other symbol?
+        - If the today's date and date in stock_data is different. Then tell the user that since the market is closed, the prediction is for the next 
         JSON Data:
         {json.dumps(stock_data, indent=2)}
         """
@@ -100,60 +104,6 @@ class OutputQueryProcessing:
                 "error": f"LLM formatting failed: {e}",
                 "raw_data": stock_data
             }
-        
-    # @log_execution
-    # def summarize_with_llm_for_no_intent(self, user_query: str) -> dict:
-    #     """
-    #     Called when the user's query does not match any known intent.
-    #     Returns helpful example queries based on existing prompt examples (query.txt), using streaming.
-    #     """
-
-    #     prompt = f"""
-    #         You are a helpful assistant.
-
-    #         The user asked: "{user_query}"
-
-    #         Unfortunately, we couldn't understand the intent of the query.
-
-    #         Below is a set of example queries from our knowledge base. Your task is to:
-    #         - Pick 5 varied, useful sample queries from the examples.
-    #         - Present them in a friendly, encouraging tone.
-    #         - Make sure to keep them as natural questions, not JSON or code.
-    #         - Pick different types of examples
-
-    #         Here are the examples:
-
-    #         {self.input_query_processor.prompt_examples}
-
-    #         Respond like:
-    #         "Sorry, I couldn't understand your query. Here are some questions you can try:
-    #         1. ...
-    #         2. ...
-    #         3. ...
-    #         ..."
-    #             """
-
-    #     try:
-    #         stream = self.client.chat.completions.create(
-    #             model=self.model,
-    #             messages=[{"role": "user", "content": prompt}],
-    #             temperature=0.5,
-    #             max_tokens=300,
-    #             stream=True
-    #         )
-
-    #         full_response = ""
-    #         for chunk in stream:
-    #             delta = chunk.choices[0].delta
-    #             if hasattr(delta, "content") and delta.content:
-    #                 full_response += delta.content
-
-    #         return {"response": full_response.strip()}
-
-    #     except Exception as e:
-    #         return {
-    #             "error": f"LLM streaming failed: {e}"
-    #         }
     
     @log_execution
     def format_info_with_llm(self, info_payload: dict, user_query: str) -> dict:
@@ -184,12 +134,11 @@ class OutputQueryProcessing:
                 stream=True
             )
 
-            # Combine the streaming chunks into a single string
             collected_response = ""
             for chunk in stream_response:
                 if chunk.choices and chunk.choices[0].delta:
                     delta = chunk.choices[0].delta
-                    collected_response += delta.get("content", "")
+                    collected_response += delta.content or ""
 
             return {"response": collected_response}
 
@@ -223,7 +172,7 @@ class OutputQueryProcessing:
 
         # 2. Off-topic detection using simple keyword checks
         off_topic_keywords = [
-            "weather", "recipe", "football", "cricket", "movie", "joke", "travel", "restaurant",
+            "weather", "recipe", "football", "cricket", "movie", "joke", "travel", "restaurant","country","capital"
             "love", "dating", "news", "whatsapp", "who are you", "your name", "what can you do"
         ]
         if any(kw in user_input_lower for kw in off_topic_keywords):
@@ -316,3 +265,71 @@ class OutputQueryProcessing:
             print(f"LLM rewrite failed: {e}")
             # Fallback: just append symbol
             return f"{original_query.strip()} ({symbol})"
+        
+    def format_info_with_llm_for_symbols(self, user_query: str) -> dict:
+        available_symbols_map = self.input_query_processor.company_symbol_map
+
+        sample_size = min(len(available_symbols_map), random.randint(5, 10))
+        sampled_items = random.sample(list(available_symbols_map.items()), sample_size)
+
+        formatted_samples = [f"{company} ({symbol})" for company, symbol in sampled_items]
+        symbols_str = ", ".join(formatted_samples)
+
+        prompt = f"""
+        You are a helpful assistant for a stock query system.
+
+        A user asked: "{user_query}"
+
+        Respond politely with the following:
+        - Inform the user that currently only a limited set of Nifty50 stocks are supported.
+        - Encourage the user to keep exploring.
+        - Mention that support for more symbols is coming soon.
+        - Give a few sample companies and their symbols from the supported list, such as:
+        {symbols_str}
+
+        Keep the tone polite, informative, and user-friendly.
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant responding to a user asking about supported stock symbols."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3
+            )
+            return {"response": response.choices[0].message.content.strip()}
+        except Exception as e:
+            return {
+                "error": f"LLM formatting failed: {e}",
+                "symbols_sampled": symbols_str
+            }
+
+    def summarize_conversation(self, history:str):
+        prompt = f"""
+                You are witty and helpful assistant for a stock query system.property
+                Conversation history:
+                {history if history.strip() else "[No Conversation History available]"}
+                Task:
+                - If there is no conversation history, respond humorously, for example:
+                "If there’s no history, how can I provide you one? Even historians can’t do that!"
+                or something playful in your own words.
+                - If there is history, summarize the main points briefly and clearly.
+                - Highlight any stock symbols, predictions, or key topics discussed.
+                """
+        try:
+            response = self.client.chat.completions.create(
+                model = self.model,
+                messages=[
+                    {"role": "system", "content": "You are a witty assistant that summarizes conversations."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5
+            )
+            return {"response": response.choices[0].message.content.strip()}
+        except Exception as e:
+            return {
+                "error": f"LLM summarization failed: {e}"
+            }
+

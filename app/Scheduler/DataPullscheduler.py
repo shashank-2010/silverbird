@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from app.Utility.utility import log_execution
 
 class DailyDataPullScheduler:
-    def __init__(self, symbols: list, folder: str, run_time="00:00"):
+    def __init__(self, symbols: list, folder: str, run_time="07:21"):
         self.symbols = symbols 
         self.folder = folder
         self.run_time = run_time
@@ -114,5 +114,5 @@ symbols = [
 # 🛠️ Start Scheduler
 if __name__ == "__main__":
     folder_path = r"D:\company"
-    scheduler = DailyDataPullScheduler(symbols=symbols, folder=folder_path, run_time="00:00")
+    scheduler = DailyDataPullScheduler(symbols=symbols, folder=folder_path, run_time="07:21")
     scheduler.start_scheduler()

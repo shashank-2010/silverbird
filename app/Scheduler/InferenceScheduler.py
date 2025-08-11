@@ -28,19 +28,19 @@ for path in [os.getcwd(), parent_dir, grandparent_dir]:
         sys.path.append(path)
 
 # Global symbols list
-# SYMBOLS = ["ADANIPORTS", "APOLLOHOSP","AXISBANK",
-#     "BAJFINANCE", "BEL", "BHARTIARTL","COALINDIA",
-#     "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO",
-#      "HINDUNILVR", "ICICIBANK", "ITC",
-#     "KOTAKBANK","MARUTI","NESTLEIND", "ONGC",
-#     "POWERGRID", "RELIANCE", "TCS",
-#      "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN",
-# ]
-SYMBOLS = ["ADANIPORTS"]
+SYMBOLS = ["ADANIPORTS", "APOLLOHOSP","AXISBANK",
+    "BAJFINANCE", "BEL", "BHARTIARTL","COALINDIA",
+    "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO",
+     "HINDUNILVR", "ICICIBANK", "ITC",
+    "KOTAKBANK","MARUTI","NESTLEIND", "ONGC",
+    "POWERGRID", "RELIANCE", "TCS",
+     "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN",
+]
+# SYMBOLS = ["ADANIPORTS"]
 
 
 class PredictionResult:
-    def __init__(self, csv_path, db_path='prediction_store_exp.json'):
+    def __init__(self, csv_path, db_path='prediction_store.json'):
         self.df = self._load_features(csv_path)
         input_dim = self.df.drop(columns=['symbol', 'date']).shape[1]
         self.models = StockPricePredictor(input_dim)
@@ -119,7 +119,7 @@ def run_prediction_job():
 
 if __name__ == "__main__":
     # Schedule to run daily at 7:00 AM
-    schedule.every().day.at("12:43").do(run_prediction_job)
+    schedule.every().day.at("13:53").do(run_prediction_job)
 
     print("[INFO] Scheduler is active. Waiting for the next scheduled prediction run.")
     while True:

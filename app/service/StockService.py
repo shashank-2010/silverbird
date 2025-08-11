@@ -65,16 +65,28 @@ class StockService:
     def predict_stock_price(self, symbol:str):
             return PredictionResult.predict_for_periods(symbol=symbol)
     
+    # def get_prediction_from_db(self, symbol, days):
+    #     today = datetime.now().strftime("%Y-%m-%d")
+    #     db = TinyDB(self.path)
+    #     Symbol = Query()
+    #     result = db.get(Symbol.id == f"{symbol}_{today}")
+
+    #     if result:
+    #         return result['predictions'].get(f"{days}_day"), result['date']
+    #     else:
+    #         return None
+
     def get_prediction_from_db(self, symbol, days):
-        today = datetime.now().strftime("%Y-%m-%d")
         db = TinyDB(self.path)
         Symbol = Query()
-        result = db.get(Symbol.id == f"{symbol}_{today}")
 
-        if result:
-            return result['predictions'].get(f"{days}_day"), result['date']
-        else:
-            return None
+        for offset in range(0, 3): 
+            date_to_check = (datetime.now() - timedelta(days=offset)).strftime("%Y-%m-%d")
+            result = db.get(Symbol.id == f"{symbol}_{date_to_check}")
+            if result:
+                return result['predictions'].get(f"{days}_day"), result['date']
+
+        return None
         
     def get_market_predictions(self, symbol: str, days_list: list):
         all_preds = {}

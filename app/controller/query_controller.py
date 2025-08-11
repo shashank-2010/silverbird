@@ -20,7 +20,8 @@ from app.service.InputQueryProcessor import InputQueryProcessor
 from app.controller.stock_controller import StockController
 from app.Utility.utility import log_execution
 from app.service.OutputQueryProcessor import OutputQueryProcessing
-from app.Utility.session_context import SessionContextManager
+from app.Utility.redis_session_context import RedisSessionContextManager
+
 from app.Utility.query_utils import QueryUtility
 
 import openai
@@ -42,13 +43,16 @@ class QueryController:
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.output_query = OutputQueryProcessing(self.db)
         self.query_util = QueryUtility(self.db)
+        self.SessionManager = RedisSessionContextManager()
 
     def _resolve_symbol_with_context(self, extracted, user_query, session_id):
         input_company = extracted.get("company")
         try:
             resolved = self.input_query_processor.resolve_symbol(input_company)
+            if isinstance(resolved, dict) and "error" in resolved:
+                return self.output_query.format_info_with_llm(resolved, input_company)
             if isinstance(resolved, dict) and "suggestion" in resolved:
-                SessionContextManager.save_context(session_id, {
+                self.SessionManager.save_context(session_id, {
                     "original_query": user_query,
                     "symbol": resolved["symbol"],
                     "intent": extracted["intent"]
@@ -59,9 +63,9 @@ class QueryController:
             self.db.close()
     
     def _handle_confirmation(self, session_id):
-        extracted = SessionContextManager.get_context(session_id)
+        extracted = self.SessionManager.get_context(session_id)
         if extracted:
-            SessionContextManager.clear_context(session_id)
+            self.SessionManager.clear_context(session_id)
             original_query = extracted["original_query"]
             symbol = extracted["symbol"]
             company_name = extracted.get("company_name", "")  # optional
@@ -74,40 +78,113 @@ class QueryController:
             return self.process_user_query(rewritten_query, session_id)
         return {"error": "No previous suggestion found to confirm."}
 
-
-
     @log_execution
-    def process_user_query(self, user_query: str, session_id: str = "default_session"):
+    def process_user_query(self, user_query: str, session_id: str):
         try:
+            self.SessionManager.save_message(session_id, "user", user_query)
             user_input_lower = user_query.strip().lower()
 
+            if "summary" in user_input_lower or "previous" in user_input_lower:
+                history = self.SessionManager.get_all_messages(session_id)
+                reply = self.output_query.summarize_conversation(history)
+                self.SessionManager.save_message(session_id, "assistant", reply)
+                return reply
+
+            # 1. Handle greetings / off-topic
             if self.query_util._is_greeting(user_input_lower) or self.query_util._is_off_topic(user_input_lower):
-                return self.output_query.summarize_with_llm_for_no_intent(user_query)
+                reply = self.output_query.summarize_with_llm_for_no_intent(user_query)
+                self.SessionManager.save_message(session_id, "assistant", reply)
+                return reply
 
-            if user_input_lower in {"yes", "y", "yeah", "correct", "right"}:
-                return self._handle_confirmation(session_id)
+            # 2. Handle confirmations
+            confirm_words = {
+                "yes", "y", "yeah", "correct", "right", "yep", "sure",
+                "absolutely", "ok", "okay", "affirmative"
+            }
+            if any(word in user_input_lower.split() for word in confirm_words):
+                reply = self._handle_confirmation(session_id)
+                self.SessionManager.save_message(session_id, "assistant", reply)
+                return reply
 
-            if user_input_lower in {"no", "n", "wrong", "nopes"}:
-                SessionContextManager.clear_context(session_id)
-                return {"message": "Okay, please provide the correct company name or symbol."}
+            # 3. Handle negatives
+            negative_words = {"no", "n", "wrong", "nopes", "nah", "not at all"}
+            if any(word in user_input_lower.split() for word in negative_words):
+                self.SessionManager.clear_context(session_id)
+                reply = {"message": "Okay, please provide the correct company name or symbol."}
+                self.SessionManager.save_message(session_id, "assistant", reply)
+                return reply
 
+            # 4. Extract info from query
             extracted = self.input_query_processor.extract_info_from_query(user_query)
+            if extracted.get("intent") == "symbols from database":
+                return self.output_query.format_info_with_llm_for_symbols(user_query)
 
+            # 5. Handle company-change follow-ups if intent unknown
+            if extracted.get("intent") == "unknown":
+                change_triggers = ["tell me about", "now tell me about", "show me", "about", "regarding"]
+                company_part = None
+                for trigger in change_triggers:
+                    if trigger in user_input_lower:
+                        company_part = user_input_lower.split(trigger, 1)[-1].strip()
+                        break
+                # Also handle if user just says "TCS", "Reliance", etc.
+                if not company_part and len(user_input_lower.split()) <= 3:
+                    blacklist_keywords = ["capital", "population", "president", "weather", "prime minister", "city"]
+                    if not any(word in user_input_lower for word in blacklist_keywords):
+                        company_part = user_input_lower
+
+                if company_part:
+                    symbol_data = self.input_query_processor.resolve_symbol(company_part)
+                    if symbol_data:
+                        last_ctx = self.SessionManager.get_context(session_id)
+                        if last_ctx and "intent" in last_ctx:
+                            intent = last_ctx["intent"]
+                            symbol = symbol_data["symbol"] if isinstance(symbol_data, dict) else symbol_data
+                            reply = self.query_util._dispatch_intent_handler(intent, {"company": company_part}, user_query, symbol)
+                            self.SessionManager.save_context(session_id, {
+                                "symbol": symbol,
+                                "intent": intent
+                            })
+                            self.SessionManager.save_message(session_id, "assistant", reply)
+                            return reply
+                else:
+                    return self.output_query.summarize_with_llm_for_no_intent(user_query=user_query)
+
+            # 6. If extraction failed
             if "error" in extracted or "intent" not in extracted:
-                return self.output_query.summarize_with_llm_for_no_intent(user_query)
+                reply = self.output_query.summarize_with_llm_for_no_intent(user_query)
+                self.SessionManager.save_message(session_id, "assistant", reply)
+                return reply
 
             intent = extracted["intent"]
             if intent not in self.query_util._valid_intents():
-                return self.output_query.summarize_with_llm_for_no_intent(user_query)
+                reply = self.output_query.summarize_with_llm_for_no_intent(user_query)
+                self.SessionManager.save_message(session_id, "assistant", reply)
+                return reply
 
+            # 7. Symbol resolution
             symbol = None
             if intent != "get_market_trend":
-                symbol = self._resolve_symbol_with_context(extracted, user_query, session_id)
-                if isinstance(symbol, dict): 
-                    return symbol
+                ctx = self.SessionManager.get_context(session_id)
+                if ctx and "symbol" in ctx and "company" not in extracted:
+                    symbol = ctx["symbol"]  # Use previous symbol
+                else:
+                    symbol = self._resolve_symbol_with_context(extracted, user_query, session_id)
+                    if isinstance(symbol, dict):  # Suggestion case
+                        self.SessionManager.save_message(session_id, "assistant", symbol)
+                        return symbol
 
-            # Delegate to appropriate intent handler
-            return self.query_util._dispatch_intent_handler(intent, extracted, user_query, symbol)
+            # 8. Handle main intent
+            reply = self.query_util._dispatch_intent_handler(intent, extracted, user_query, symbol)
+
+            # 9. Save context
+            self.SessionManager.save_context(session_id, {
+                "symbol": symbol,
+                "intent": intent
+            })
+            self.SessionManager.save_message(session_id, "assistant", reply)
+
+            return reply
 
         except Exception as e:
             return {"error": f"Unexpected error while processing query: {str(e)}"}
