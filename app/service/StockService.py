@@ -76,12 +76,13 @@ class StockService:
     #     else:
     #         return None
 
-    def get_prediction_from_db(self, symbol, days):
+    def get_prediction_from_db(self, symbol, days,date = None):
         db = TinyDB(self.path)
         Symbol = Query()
+        base_date = datetime.strptime(date, "%Y-%m-%d") if date else datetime.now()
 
         for offset in range(0, 3): 
-            date_to_check = (datetime.now() - timedelta(days=offset)).strftime("%Y-%m-%d")
+            date_to_check = (base_date-timedelta(days=offset)).strftime("%Y-%m-%d")
             result = db.get(Symbol.id == f"{symbol}_{date_to_check}")
             if result:
                 return result['predictions'].get(f"{days}_day"), result['date']
@@ -93,7 +94,7 @@ class StockService:
         _date = None 
 
         for day in days_list:
-            result = self.get_prediction_from_db(symbol, day)
+            result = self.get_prediction_from_db(symbol, day, date=None)
 
             if result is None:
                 continue  

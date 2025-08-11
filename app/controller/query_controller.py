@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 grandparent_dir = os.path.abspath(os.path.join(parent_dir, '..'))
 if parent_dir not in sys.path:
@@ -44,6 +45,7 @@ class QueryController:
         self.output_query = OutputQueryProcessing(self.db)
         self.query_util = QueryUtility(self.db)
         self.SessionManager = RedisSessionContextManager()
+        self.comp_repo = CompanyRepository(db=self.db)
 
     def _resolve_symbol_with_context(self, extracted, user_query, session_id):
         input_company = extracted.get("company")
@@ -62,12 +64,12 @@ class QueryController:
         finally:
             self.db.close()
     
-    def _handle_confirmation(self, session_id):
+    def _handle_confirmation(self, session_id, symbol = None):
         extracted = self.SessionManager.get_context(session_id)
         if extracted:
             self.SessionManager.clear_context(session_id)
             original_query = extracted["original_query"]
-            symbol = extracted["symbol"]
+            symbol = symbol
             company_name = extracted.get("company_name", "")  # optional
 
             rewritten_query = self.output_query.rewrite_query_with_symbol(
@@ -77,23 +79,28 @@ class QueryController:
             )
             return self.process_user_query(rewritten_query, session_id)
         return {"error": "No previous suggestion found to confirm."}
+    
+    def _normalize_input(self, input_str: str) -> str:
+        return re.sub(r'[^\w\s]', '', input_str.strip().lower())
 
     @log_execution
     def process_user_query(self, user_query: str, session_id: str):
         try:
             self.SessionManager.save_message(session_id, "user", user_query)
             user_input_lower = user_query.strip().lower()
+            extracted = self.input_query_processor.extract_info_from_query(user_input_lower)
+            confirmation = extracted.get("confirmation", "").lower()
 
             if "summary" in user_input_lower or "previous" in user_input_lower:
                 history = self.SessionManager.get_all_messages(session_id)
                 reply = self.output_query.summarize_conversation(history)
-                self.SessionManager.save_message(session_id, "assistant", reply)
+                self.SessionManager.save_llm_response(session_id, "assistant", reply)
                 return reply
 
             # 1. Handle greetings / off-topic
             if self.query_util._is_greeting(user_input_lower) or self.query_util._is_off_topic(user_input_lower):
                 reply = self.output_query.summarize_with_llm_for_no_intent(user_query)
-                self.SessionManager.save_message(session_id, "assistant", reply)
+                self.SessionManager.save_llm_response(session_id, "assistant", reply)
                 return reply
 
             # 2. Handle confirmations
@@ -101,21 +108,25 @@ class QueryController:
                 "yes", "y", "yeah", "correct", "right", "yep", "sure",
                 "absolutely", "ok", "okay", "affirmative"
             }
-            if any(word in user_input_lower.split() for word in confirm_words):
-                reply = self._handle_confirmation(session_id)
-                self.SessionManager.save_message(session_id, "assistant", reply)
-                return reply
+            if any(word in user_input_lower.split() for word in confirm_words) or confirmation =='yes':
+                company = extracted.get('company','')
+                if company:
+                    symbol = self.comp_repo.get_symbol_by_company_or_symbol(company)
+                    return self._handle_confirmation(session_id, symbol = symbol)
+                reply = self._handle_confirmation(session_id, symbol=None)
+                self.SessionManager.save_llm_response(session_id, "assistant", reply)
+                return self.output_query.format_info_with_llm(info_payload=reply, user_query=user_input_lower)
 
             # 3. Handle negatives
             negative_words = {"no", "n", "wrong", "nopes", "nah", "not at all"}
-            if any(word in user_input_lower.split() for word in negative_words):
+            if any(word in user_input_lower.split() for word in negative_words) or confirmation =='no':
                 self.SessionManager.clear_context(session_id)
                 reply = {"message": "Okay, please provide the correct company name or symbol."}
-                self.SessionManager.save_message(session_id, "assistant", reply)
-                return reply
+                self.SessionManager.save_llm_response(session_id, "assistant", reply)
+                return self.output_query.format_info_with_llm(info_payload=reply, user_query=user_input_lower)
 
             # 4. Extract info from query
-            extracted = self.input_query_processor.extract_info_from_query(user_query)
+            # extracted = self.input_query_processor.extract_info_from_query(user_query)
             if extracted.get("intent") == "symbols from database":
                 return self.output_query.format_info_with_llm_for_symbols(user_query)
 
@@ -140,12 +151,13 @@ class QueryController:
                         if last_ctx and "intent" in last_ctx:
                             intent = last_ctx["intent"]
                             symbol = symbol_data["symbol"] if isinstance(symbol_data, dict) else symbol_data
-                            reply = self.query_util._dispatch_intent_handler(intent, {"company": company_part}, user_query, symbol)
+                            reply = self.query_util._dispatch_intent_handler(intent, {"company": company_part}, user_query, symbol, date =None)
                             self.SessionManager.save_context(session_id, {
                                 "symbol": symbol,
-                                "intent": intent
+                                "intent": intent,
+                                "original_query":user_input_lower
                             })
-                            self.SessionManager.save_message(session_id, "assistant", reply)
+                            self.SessionManager.save_llm_response(session_id, "assistant", reply)
                             return reply
                 else:
                     return self.output_query.summarize_with_llm_for_no_intent(user_query=user_query)
@@ -153,7 +165,7 @@ class QueryController:
             # 6. If extraction failed
             if "error" in extracted or "intent" not in extracted:
                 reply = self.output_query.summarize_with_llm_for_no_intent(user_query)
-                self.SessionManager.save_message(session_id, "assistant", reply)
+                self.SessionManager.save_llm_response(session_id, "assistant", reply)
                 return reply
 
             intent = extracted["intent"]
@@ -171,18 +183,19 @@ class QueryController:
                 else:
                     symbol = self._resolve_symbol_with_context(extracted, user_query, session_id)
                     if isinstance(symbol, dict):  # Suggestion case
-                        self.SessionManager.save_message(session_id, "assistant", symbol)
-                        return symbol
+                        self.SessionManager.save_llm_response(session_id, "assistant", symbol)
+                        return self.output_query.format_info_with_llm(info_payload=symbol, user_query=user_input_lower)
 
             # 8. Handle main intent
-            reply = self.query_util._dispatch_intent_handler(intent, extracted, user_query, symbol)
+            reply = self.query_util._dispatch_intent_handler(intent, extracted, user_query, symbol, date=None)
 
             # 9. Save context
             self.SessionManager.save_context(session_id, {
                 "symbol": symbol,
-                "intent": intent
+                "intent": intent,
+                "original_query":user_input_lower
             })
-            self.SessionManager.save_message(session_id, "assistant", reply)
+            self.SessionManager.save_llm_response(session_id, "assistant", reply)
 
             return reply
 
