@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+import pandas as pd
+import ta
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 grandparent_dir = os.path.abspath(os.path.join(parent_dir, '..'))
 if parent_dir not in sys.path:
@@ -84,3 +86,41 @@ class InputQueryProcessor:
                 "error": "Company not found",
                 "available_symbols": self.company_repo.get_all_symbols()
             }
+        
+    def _precompute_technical_indicator(self, symbol: str, indicator_name: str, threshold: float = None, lookback_days: int = 7) -> list[dict]:
+
+        base_path = "D:\\company\\"
+        file_path = os.path.join(base_path, f"{symbol}_OHLC_10_years_daily.csv")
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found for symbol: {symbol}")
+
+        df = pd.read_csv(file_path)
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df.sort_values('Date').dropna()
+
+        # Compute indicator
+        indicator_name = indicator_name.lower()
+        if indicator_name.startswith("sma"):
+            window = int(indicator_name[3:])
+            df['indicator'] = ta.trend.sma_indicator(df['Close'], window=window)
+        elif indicator_name.startswith("rsi"):
+            window = 14  # Could be extracted from the name if needed
+            df['indicator'] = ta.momentum.rsi(df['Close'], window=window)
+        else:
+            raise ValueError(f"Unsupported indicator: {indicator_name}")
+
+        # Add optional comparison with threshold
+        if threshold is not None:
+            df['above_threshold'] = df['indicator'] > threshold
+
+        # Get recent N days
+        recent = df.tail(lookback_days)[['Date', 'Close', 'indicator'] + (['above_threshold'] if threshold else [])]
+        
+        # Optional: add direction flag
+        if len(recent) >= 2:
+            last_two = recent.tail(2)
+            direction = "up" if last_two['Close'].iloc[-1] > last_two['Close'].iloc[-2] else "down"
+            recent.loc[:, 'direction'] = direction
+
+        return recent.to_dict(orient="records")

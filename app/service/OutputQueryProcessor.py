@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import random
+import pandas as pd
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 grandparent_dir = os.path.abspath(os.path.join(parent_dir, '..'))
 if parent_dir not in sys.path:
@@ -347,4 +348,50 @@ class OutputQueryProcessing:
             return {
                 "error": f"LLM summarization failed: {e}"
             }
+        
+    def summarize_ta_using_llm(self, enriched_csv_path: str, user_query: str, max_days: int = 30) -> dict:
+        try:
+            df = pd.read_csv(enriched_csv_path)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date').tail(max_days)
+
+            columns_to_include = [col for col in df.columns if col.lower() not in {'open', 'high', 'low', 'volume'}]
+            stock_data = df[columns_to_include].to_dict(orient="records")
+
+            prompt = f"""
+                You are a technical analysis assistant.
+
+                A user asked: "{user_query}"
+
+                You are given recent stock data (30 days or less) with the following columns:
+                - Prices (close, open)
+                - Trend indicators (EMA13, EMA21, ADX, MACD, etc.)
+                - Momentum indicators (RSI, ROC, Stochastic)
+                - Volatility (ATR, Bollinger Bands, etc.)
+                - Volume and flow (VWAP, CMF)
+                - Candlestick features (body, wicks, gaps)
+
+                Please:
+                - Analyze the data in relation to the user's query.
+                - Perform relevant comparisons (like RSI > 70, MACD cross, etc.)
+                - Use simple, conversational, and polite language.
+                - Mention if patterns exist or not, with dates if possible.
+                - If the data is old, say it's for backtesting purposes.
+
+                Stock Data:
+                {json.dumps(stock_data, indent=2)}
+                """
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                stream=False
+            )
+
+            return {"response": response.choices[0].message.content}
+
+        except Exception as e:
+            return {"error": f"Failed to summarize technical analysis: {e}"}
+
 

@@ -22,6 +22,7 @@ from app.controller.stock_controller import StockController
 from app.Utility.utility import log_execution
 from app.service.OutputQueryProcessor import OutputQueryProcessing
 from app.Utility.redis_session_context import RedisSessionContextManager
+from app.feature_engineering.save_features_csv import StoreFeatureEngineering
 
 from app.Utility.query_utils import QueryUtility
 
@@ -82,6 +83,41 @@ class QueryController:
     
     def _normalize_input(self, input_str: str) -> str:
         return re.sub(r'[^\w\s]', '', input_str.strip().lower())
+    
+    def _handle_technical_analysis_query(self, user_query, user_input_lower, session_id, extracted):
+        symbol = None
+        if "company" in extracted:
+            symbol = self.comp_repo.get_symbol_by_company_or_symbol(extracted["company"])
+        else:
+            ctx = self.SessionManager.get_context(session_id)
+            if ctx and "symbol" in ctx:
+                symbol = ctx["symbol"]
+
+        if not symbol:
+            reply = {"message": "Please provide a company name or symbol for indicator analysis."}
+            return self.output_query.format_info_with_llm(info_payload=reply, user_query=user_input_lower)
+
+        try:
+            self.stored_enriched_csv = StoreFeatureEngineering(symbol=symbol)
+            enriched_csv_path = self.stored_enriched_csv._generate_enriched_csv_with_features()
+
+            reply = self.output_query.summarize_ta_using_llm(
+                enriched_csv_path=enriched_csv_path,
+                user_query=user_query
+            )
+
+            self.SessionManager.save_context(session_id, {
+                "symbol": symbol,
+                "intent": "technical_indicator_query",
+                "original_query": user_input_lower
+            })
+
+            self.SessionManager.save_llm_response(session_id, "assistant", reply)
+            return reply
+
+        except Exception as e:
+            return {"error": str(e)}
+
 
     @log_execution
     def process_user_query(self, user_query: str, session_id: str):
@@ -129,6 +165,11 @@ class QueryController:
             # extracted = self.input_query_processor.extract_info_from_query(user_query)
             if extracted.get("intent") == "symbols from database":
                 return self.output_query.format_info_with_llm_for_symbols(user_query)
+            
+            if extracted.get("intent") == "technical_indicator_query":
+                return self._handle_technical_analysis_query(user_query, user_input_lower, session_id, extracted)
+
+
 
             # 5. Handle company-change follow-ups if intent unknown
             if extracted.get("intent") == "unknown":
