@@ -29,6 +29,9 @@ origins = [
 #     "http://silverbirds.in",
 #     "http://www.silverbirds.in",
 #     "http://api.silverbirds.in"
+#     "https://silverbirds.in",
+#     "https://www.silverbirds.in",
+#     "https://api.silverbirds.in"
 # ]
 
 app.add_middleware(

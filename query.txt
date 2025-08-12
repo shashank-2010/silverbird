@@ -71,7 +71,28 @@ Query: 1 day and 3 day price prediction of HDFC Bank.
 Output: {"company": "HDFC Bank", "intent": "get_future_prediction", "days": [1, 3]}
 
 Query: What are the stock price forecasts for ITC over the next 1 and 5 days?
-Output: {"company": "ITC", "intent": "get_future_prediction", "days": [1, 5]}
+Output: {"company": "ITC", "intent": "get_future_prediction", "days": [1, 3]}
+
+Query: Future price of TCS
+Output: {"company":"TCS", "intent":"get_future_prediction","days":[1,3]}
+
+Query: Future price of it
+Output: {"intent":"get_future_prediction","days":[1,3]}
+
+Query: What was the predicted price of TCS on 4th March
+Output: {"company":"TCS", "intent":"get_future_prediction","days":[1,3],"date":"2025-03-04"}
+
+Query: the predicted price of TCS on 4th March
+Output: {"company":"TCS", "intent":"get_future_prediction","days":[1,3],"date":"2025-03-04"}
+
+Query: What was the future price of TCS on 4th March
+Output: {"company":"TCS", "intent":"get_future_prediction","days":[1,3],"date":"2025-03-04"}
+
+Query: What was the predicted price of TCS on March 4th
+Output: {"company":"TCS", "intent":"get_future_prediction","days":[1,3],"date":"2025-03-04"}
+
+Query: the predicted price of TCS on March 4th
+Output: {"company":"TCS", "intent":"get_future_prediction","days":[1,3],"date":"2025-03-04"}
 
 Query: Which stocks will go up in the next 3 days?
 Output:
