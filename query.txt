@@ -191,3 +191,16 @@ Output: {"intent":"symbols from database"}
 
 Query: Symbols
 Output: {"intent":"symbols from database"}
+
+Query: Was TCS price above SMA20?
+Output: {"intent":"technical_indicator_query","symbol":"TCS"}
+
+Query: WAS TITAN Price between SMA20 and SMA50?
+Output: {"intent":"technical_indicator_query","symbol":"TCS"}
+
+Query: Did TCS RSI crossed 70 in last one week?
+Output: {"intent":"technical_indicator_query","symbol":"TCS", period = 7}
+
+Query: how has been the volume of TATA Motors?
+Output: {"intent":"technical_indicator_query","company":"TATA Motors}
+

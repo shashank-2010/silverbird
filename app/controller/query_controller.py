@@ -88,6 +88,8 @@ class QueryController:
         symbol = None
         if "company" in extracted:
             symbol = self.comp_repo.get_symbol_by_company_or_symbol(extracted["company"])
+            if isinstance (symbol,dict):
+                symbol = symbol.get('symbol')
         else:
             ctx = self.SessionManager.get_context(session_id)
             if ctx and "symbol" in ctx:

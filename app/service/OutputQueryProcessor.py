@@ -356,7 +356,10 @@ class OutputQueryProcessing:
             df = df.sort_values('date').tail(max_days)
 
             columns_to_include = [col for col in df.columns if col.lower() not in {'open', 'high', 'low', 'volume'}]
-            stock_data = df[columns_to_include].to_dict(orient="records")
+            stock_data = df[columns_to_include].copy()
+            if 'date' in stock_data.columns:
+                stock_data['date'] = pd.to_datetime(stock_data['date']).dt.strftime('%Y-%m-%d')
+            stock_data = stock_data.to_dict(orient="records")
 
             prompt = f"""
                 You are a technical analysis assistant.

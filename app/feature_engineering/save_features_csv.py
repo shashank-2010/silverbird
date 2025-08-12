@@ -16,13 +16,19 @@ class StoreFeatureEngineering:
 
         df = pd.read_csv(self.raw_file)
         df.columns = df.columns.str.lower()
-        df['date'] = pd.to_datetime(df['date'])
+        #df['date'] = pd.to_datetime(df['date'])
+        df['date'] = pd.to_datetime(df['date'], format='mixed', dayfirst=True, errors='coerce')
         df = df.sort_values('date')
 
         # === Start Feature Engineering ===
         df['rsi_14'] = df.ta.rsi(length=14)
         df['ema_13'] = df.ta.ema(length=13)
         df['ema_21'] = df.ta.ema(length=21)
+        df['sma_10'] = df.ta.sma(length=10)
+        df['sma_20'] = df.ta.sma(length=20)
+        df['sma_50'] = df.ta.sma(length=50)
+        df['sma_100'] = df.ta.sma(length=100)
+        df['sma_200'] = df.ta.sma(length=200)
         df['ema_diff'] = df['ema_13'] - df['ema_21']
         df['price_above_ema_21'] = (df['close'] > df['ema_21']).astype(int)
         df['roc_5'] = df.ta.roc(length=5)
