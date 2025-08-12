@@ -17,19 +17,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# origins = [
-#     "http://localhost:3000",
-#     "http://127.0.0.1:3000",
-#     "http://127.0.0.1:5500",  
-#     "http://localhost:5500"
-# ]
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5500",  
+    "http://localhost:5500"
+]
 
 #http://silverbirds.in/
-origins = [
-    "https://silverbirds.in",
-    "https://www.silverbirds.in",
-    "https://api.silverbirds.in"
-]
+# origins = [
+#     "http://silverbirds.in",
+#     "http://www.silverbirds.in",
+#     "http://api.silverbirds.in"
+# ]
 
 app.add_middleware(
     CORSMiddleware,

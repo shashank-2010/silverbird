@@ -197,7 +197,7 @@ def run_training_job():
 
 
 if __name__ == "__main__":
-    schedule.every().day.at("05:12").do(run_training_job)
+    schedule.every().day.at("00:10").do(run_training_job)
 
     print("[SCHEDULER] Started. Waiting for next run...")
     while True:
