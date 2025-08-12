@@ -164,11 +164,26 @@ class OutputQueryProcessing:
             - 🧠 Interpret your queries and give intelligent suggestions.
 
             Try asking me something like:
-            1. What’s the price of Apple today?
-            2. Show me Google’s stock trend for the past month.
-            3. Predict Tesla stock for the next 3 days.
+            1. What’s the price of TATAMOTORS today?
+            2. Predict AXISBANK stock for the next 3 days.
+            3. Market Trend for A Symbol
             """
-            return {"response": greeting_message.strip()}
+            prompt = (
+            "Rewrite the following assistant greeting to make it more friendly, elegant, and slightly witty. "
+            "Use emojis where appropriate, keep it clear and professional, and structure it nicely:\n\n"
+            + greeting_message
+            )   
+            response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are a query rewriting assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7  # You can bump it up slightly for creativity
+            )
+            improved_greeting = response.choices[0].message.content.strip()
+
+            return {"response": improved_greeting}
 
         # 2. Off-topic detection using simple keyword checks
         off_topic_keywords = [

@@ -50,3 +50,9 @@ class RedisSessionContextManager:
         raw_messages = self.redis_client.lrange(f"chat:{session_id}", 0, -1)
         messages = [json.loads(msg) for msg in raw_messages]
         return "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in messages])
+    
+    def save_llm_response(self, session_id, message):
+        # Store in a different Redis index
+        key = f"llm_responses:{session_id}"
+        entry = {"role": "assistant", "message": message}
+        self.redis_client.rpush(key, json.dumps(entry))

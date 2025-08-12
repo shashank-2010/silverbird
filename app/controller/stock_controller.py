@@ -38,15 +38,18 @@ class StockController:
             return self.service.get_current_price(nse_symbols)
         
     def get_predictions(self, symbol: str, days_list: list):
-        all_preds = {}
-        for day in days_list:
-            prediction, _date = self.service.get_prediction_from_db(symbol, day)
-            all_preds[f"{day}_day"] = prediction
-        return {
-            "symbol": symbol,
-            "date": _date,
-            "predictions": all_preds
-        }
+        try:
+            all_preds = {}
+            for day in days_list:
+                prediction, _date = self.service.get_prediction_from_db(symbol, day, date=None)
+                all_preds[f"{day}_day"] = prediction
+            return {
+                "symbol": symbol,
+                "date": _date,
+                "predictions": all_preds
+            }
+        except Exception as e:
+            return {"message":"We dont have data for this symbol currently. Be patient, and we will give you seemless information very soon"}
     
     def process_prediction_summary(self, prediction_data: dict) -> dict:
         if not prediction_data.get("predictions"):
@@ -83,3 +86,18 @@ class StockController:
             }
 
         return result
+    
+    def get_past_predictions(self, symbol: str, days_list: list, date):
+        try:
+            all_preds = {}
+            for day in days_list:
+                prediction, _date = self.service.get_prediction_from_db(symbol, day, date)
+                all_preds[f"{day}_day"] = prediction
+            return {
+                    "symbol": symbol,
+                    "date": _date,
+                    "predictions": all_preds
+                }
+        except Exception as e:
+            return {"message":"We dont have data for this symbol currently. Be patient, and we will give you seemless information very soon"}
+        
