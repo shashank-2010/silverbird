@@ -67,7 +67,7 @@ SYMBOLS = ["ADANIPORTS", "APOLLOHOSP","AXISBANK",
     "POWERGRID", "RELIANCE", "TCS",
      "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN",
 ]
-# SYMBOLS = ["ADANIPORTS"]
+#SYMBOLS = ["ADANIENT"]
 
 def directional_accuracy(y_true_seq, y_pred, forecast_days):
     """

@@ -77,13 +77,15 @@ class StockPricePredictor:
         with torch.no_grad():
             prediction = model(input_tensor).item()
         
+        print(self.scaler.feature_names_in_.tolist())
+        close_index = self.scaler.feature_names_in_.tolist().index('close')
         dummy = np.zeros((1, self.input_dim))
-        # close_index = self.scaler.feature_names_in_.tolist().index('close')
-        # dummy[0][close_index] = prediction
-        # prediction_unscaled = self.scaler.inverse_transform(dummy)[0][close_index]
+        dummy[0][close_index] = prediction
+        prediction_unscaled = self.scaler.inverse_transform(dummy)[0][close_index]
 
-        dummy[0][3] = prediction  
-        prediction_unscaled = self.scaler.inverse_transform(dummy)[0][3]
+        # dummy = np.zeros((1, self.input_dim))
+        # dummy[0][3] = prediction  
+        # prediction_unscaled = self.scaler.inverse_transform(dummy)[0][3]
 
         current_price = df[df['symbol'] == symbol].iloc[-1]['close']
         direction = "up" if prediction_unscaled > current_price else "down"
