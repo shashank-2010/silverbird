@@ -86,7 +86,7 @@ class OutputQueryProcessing:
         - Format the summary as readable bullet points. But dont mention the meta level comments like "in readable bullet form".
         - If json has direction , then try explaining the direction which is based on last day's close price. 
         - Also at last give suggestion in a polite and better way based on query like - Do you want me to let you know about other symbol?
-        - If the today's date and date in stock_data is different. Then tell the user that since the market is closed, the prediction is for the next 
+        - If the today's date and date in stock_data is different. Then tell the user that the predicted data is from past and it can be used as backtesting.
         JSON Data:
         {json.dumps(stock_data, indent=2)}
         """

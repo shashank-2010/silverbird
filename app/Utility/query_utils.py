@@ -93,7 +93,7 @@ class QueryUtility:
                 days = [1]
 
         if date:
-            prediction_data = self.stock_controller.get_past_predictions(symbol=symbol, days_list=days)
+            prediction_data = self.stock_controller.get_past_predictions(symbol=symbol, days_list=days, date=date)
         else:
             prediction_data = self.stock_controller.get_predictions(symbol=symbol, days_list=days)
         if prediction_data.get('message'):
